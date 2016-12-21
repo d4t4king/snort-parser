@@ -25,7 +25,7 @@ foreach my $ra ( @raw_alerts ) {
 	my $sa = SnortAlert->parsealert($ra);
 	#print Dumper($sa);
 	push @parsed_alerts, $sa;
-	$titles{"$as->{'sid'}-$sa->{'title'}"}++;
+	$titles{"$sa->{'sid'}-$sa->{'title'}"}++;
 }
 
 foreach my $t ( sort { $titles{$b} <=> $titles{$a} } keys %titles ) {
