@@ -7,7 +7,7 @@ use Data::Dumper;
 
 sub new {
 	my $class = shift;
-	my @xrefs;
+	my (@xrefs, @um_lines);
 	my %attrs = (
 		'classification'	=>	'',
 		'sid'				=>	'',
@@ -16,6 +16,7 @@ sub new {
 		'src_ip'			=>	'',
 		'dst_ip'			=>	'',
 		'xrefs'				=>	\@xrefs,
+		'unmatched_lines'	=>	\@um_lines,
 	);
 	my $self = \%attrs;
 

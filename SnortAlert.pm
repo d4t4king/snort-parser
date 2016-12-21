@@ -8,6 +8,8 @@ use warnings;
 use feature qw( switch );
 no if $] >= 5.017011, warnings => 'experimental::smartmatch';
 
+use Class::Date;
+
 use lib ".";
 use SnortAlert::Alert;
 
@@ -40,14 +42,45 @@ sub parsealert {
 		given ($line) {
 			when (/\[\*\*\]\s+\[\d+:(\d+)\:\d+\]\s+([A-Z-]+)\s+(.+)\[\*\*\]/) { 
 				$SnortAlert->{'sid'}			= $1; 
-				$SnortAlert->{'filename_guess'}	= $2; 
+				$SnortAlert->{'category'}		= $2; 
 				$SnortAlert->{'title'}			= $3;
 			}
 			when (/\[Classification\:\s+(.*?)\]\s+\[Priority\:\s+(\d)\]/) {
 				$SnortAlert->{'classification'}	= $1; 
 				$SnortAlert->{'priority'}		= $2; 
 			}
-			default { }
+			when (/(\d\d?)\/(\d\d?)\-(\d\d\:\d\d\:\d\d\.\d+)\s+((?:[0-9A-Fa-f]{2}\:){5}[0-9A-Fa-f]{2})\s+\-\>\s+((?:[0-9A-Fa-f]{2}\:){5}[0-9A-Fa-f]{2})\s+type\:/) {
+				my $m = $1; my $d = $2, my $t = $3;
+				my ($hms,$us) = split(/\./,$t);
+				my ($H,$M,$S) = split(/\:/, $hms);
+				my $y = (localtime())[5] + 1900;
+				$SnortAlert->{'event_date'}		= Class::Date->new($y,$m,$d,$H,$M,$S);
+				$SnortAlert->{'src_mac'}		= $4;
+				$SnortAlert->{'dst_mac'}		= $5;
+			}
+			when (/((?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))\:(\d{1,5})\s+\-\>\s+((?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))\:(\d{1,5}).*/) {
+				$SnortAlert->{'src_ip'}			= $1;
+				$SnortAlert->{'src_port'}		= $2;
+				$SnortAlert->{'dst_ip'}			= $3;
+				$SnortAlert->{'dst_port'}		= $4;
+			}
+			when (/^\[Xref\s+\=\>\s+(.+)\]\[Xref\s+\=\>\s+(.+)\]\[Xref\s+\=\>\s+(.+)\]$/) {
+				my $one = $1; my $two = $2; my $three = $3;
+				push @{$SnortAlert->{'xrefs'}}, $one;
+				push @{$SnortAlert->{'xrefs'}}, $two;
+				push @{$SnortAlert->{'xrefs'}}, $three;
+			}
+			when (/^\[Xref\s+\=\>\s+(.+)\]\[Xref\s+\=\>\s+(.+)\]$/) {
+				my $one = $1; my $two = $2;
+				push @{$SnortAlert->{'xrefs'}}, $one;
+				push @{$SnortAlert->{'xrefs'}}, $two;
+			}
+			when (/^\[Xref\s+\=\>\s+(.+)\]$/) {
+				push @{$SnortAlert->{'xrefs'}}, $1;
+			}
+			default {
+				push @{$SnortAlert->{'unmatched_lines'}}, $line;
+			}
 		}
 	}
 
